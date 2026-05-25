@@ -34,35 +34,40 @@ OSC HPC	Computational platform
 
 Download InterProScan:
 
+```bash
 wget https://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.77-108.0/interproscan-5.77-108.0-64-bit.tar.gz
+```
 
 Extract files:
-
+```bash
 tar -xvzf interproscan-5.77-108.0-64-bit.tar.gz
 
 cd interproscan-5.77-108.0
 
 chmod +x interproscan.sh
+```
 
 ## 2. Split Transcriptome FASTA Files
 
 Large transcriptomes were divided into smaller FASTA chunks to enable parallel processing with SLURM array jobs.
 
-S. brooksi
+```bash
+#S. brooksi
 ./seqkit split \
     -s 2000 \
     trinity_brooksi_full.Trinity.fasta \
     -O split_files/
-S. elizabethae
+#S. elizabethae
 ./seqkit split \
     -s 2000 \
     S.elizabethae_transcriptome_assembly.fasta \
     -O S_eli_split_files/
-
+```
 Each split file contains 2000 transcript sequences.
 
 ## 3. InterProScan SLURM Workflow
 Example: S. brooksi
+```bash
 #!/bin/bash
 #SBATCH --account=PDNU0016
 #SBATCH --job-name=interscan_S.brooksi
@@ -91,8 +96,8 @@ FILE=$(ls /path/to/split_files/*.fasta | sed -n "${SLURM_ARRAY_TASK_ID}p")
     -cpu 4 \
     -T $TMPDIR \
     -b /path/to/interproscan_output/$(basename $FILE .fasta)
-
+```
 ## 4. GO enrichment Analysis
 Followed methods adapted from: [Enrichment Analysis for Non-model Organisms](https://github.com/dadrasarmin/enrichment_analysis_for_non_model_organism?tab=readme-ov-file) by dadrasarmin
-R file of the analysis included in this repository.
+R file of the analysis included in this repository as GO_enirchment_analysis.Rmd
 
