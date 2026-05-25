@@ -1,5 +1,5 @@
 ---
-title: "GO_term_matching"
+title: "GO_enrichment_analysis"
 output:
   pdf_document: default
   html_document: default
