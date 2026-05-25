@@ -1,0 +1,277 @@
+---
+title: "GO_term_matching"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+date: "2026-03-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("devtools")
+library("devtools")
+library("BiocManager")
+devtools::install_github("GuangchuangYu/GOSemSim")
+devtools::install_github("GuangchuangYu/clusterProfiler")
+library(tidyverse)
+library(clusterProfiler)
+library(here)
+```
+
+```{r S.eli prepare clean table}
+#read GO file from OSC
+S.eli_GO_summary <- read.delim("S.elizabethae_GO_term_match.tsv")
+S.eli_GO_summary
+
+# Select 2 columns of transcript and GO, and add header for the two columns
+colnames(S.eli_GO_summary)
+S.eli_GO_table <- S.eli_GO_summary %>%
+  select("comp14663_c0_seq1_orf5194", "GO.0004842.InterPro..GO.0016567.InterPro.")
+
+#Rename the 2 columns 
+colnames(S.eli_GO_table) <- c("Transcripts_ID","GO_number")
+
+# Repeat the tutorial code chunk 1
+S.eli_GO_table_clean <- S.eli_GO_table %>%
+  # remove empty rows
+  filter(GO_number != "-" & !is.na(GO_number)) %>%
+  # split multiple GO terms
+  separate_rows(GO_number, sep = "\\|") %>%
+  # remove "(InterPro)"
+  mutate(GO_number = gsub("\\(.*?\\)", "", GO_number)) %>%
+  # trim whitespace (just in case)
+  mutate(GO_number = trimws(GO_number)) %>%
+  distinct()
+head(S.eli_GO_table_clean)
+```
+
+```{r S.eli prepare term to table name}
+library(ontologyIndex)
+# prepare the term to name table
+ontology <- get_ontology(file = "go.obo",
+                         propagate_relationships = "is_a",
+                         extract_tags = "everything",
+                         merge_equivalent_terms = TRUE)
+S.eli_GO_term <- S.eli_GO_table_clean %>%
+    mutate(name = ontology$name[GO_number]) %>%
+    select(c(GO_number, name)) %>%
+    distinct() %>%
+    drop_na() %>%
+    filter(!grepl("obsolete", name))
+head(S.eli_GO_term)
+
+S.eli_GO_table_clean <- S.eli_GO_table_clean %>%
+    filter(GO_number %in% S.eli_GO_term$GO_number)
+head(S.eli_GO_table_clean)
+
+# save the results
+write_tsv(x = S.eli_GO_table_clean, file = "S.eli_term2transcript_GO.tsv")
+write_tsv(x = S.eli_GO_term, file = "S.eli_term2name_GO.tsv")
+```
+
+```{r S.eli background & interesting transcripts}
+#Not all transcripts in the transcriptome is expressed, before DEA, we did filtered low (or noise) expressed transcripts -> use transcripts that expressed (aka the big DE table before filtering for significant)
+
+S.eli_background <- read.table( here("eli_data","S.eli_DEA_whole_table.tabular"), header = TRUE)
+head(S.eli_background)
+colnames(S.eli_background) <- "Transcripts_ID"
+S.eli_background <- S.eli_background %>% 
+  pull("Transcripts_ID") %>%
+  as.vector()
+
+
+#interesting transcripts list
+
+S.eli_interesting <- read.table(here("eli_data","S.eli_DEG_IDs.tabular"), header = TRUE)
+colnames(S.eli_interesting) <- "Transcripts_ID"
+head(S.eli_interesting)
+S.eli_interesting<- S.eli_interesting %>% 
+  pull("Transcripts_ID") %>%
+  as.vector()
+
+```
+
+```{r S.eli enrichment test}
+
+# perform ORA
+term2transcript <- read_tsv("S.eli_term2transcript_GO.tsv")
+term2name <- read_tsv("S.eli_term2name_GO.tsv")
+
+#interproscan added the orf number onto the tail end of the Transcript_ID, need to take it off
+term2transcript <- term2transcript %>%
+  mutate(Transcripts_ID = gsub("_orf.*", "", Transcripts_ID))
+
+# switch the column to match the term first (like in the examples)
+term2transcript <- term2transcript[c("GO_number", "Transcripts_ID")]
+print(term2transcript)
+
+enrichment <- enricher(S.eli_interesting,
+                       TERM2GENE = term2transcript, #enricher function only recognize TERM2GENE argument even if I want to test for transcript 
+                       TERM2NAME = term2name,
+                       pvalueCutoff = 0.05,
+                       universe = S.eli_background,
+                       qvalueCutoff = 0.05)
+enrichment
+
+#save the enrichment result
+write.csv(file = paste0("S.eli_enrichment_results.csv"),         
+          x = enrichment@result)
+
+
+
+head(S.eli_interesting)
+head(term2transcript$Transcripts_ID)
+```
+
+---------------
+S.brooksi
+
+```{r S.brooksi prepare clean table}
+#read GO file from OSC
+S.bro_GO_summary <- read.delim("S.brooksi_transcriptome_GO_term.tsv")
+head(S.bro_GO_summary)
+
+# Select 2 columns of transcript and GO, and add header for the two columns
+colnames(S.bro_GO_summary)
+S.bro_GO_table <- S.bro_GO_summary %>%
+  select("TRINITY_DN5637_c1_g1_i2_orf36422", "X.")
+
+#Rename the 2 columns 
+colnames(S.bro_GO_table) <- c("Transcripts_ID","GO_number")
+
+# Repeat the tutorial code chunk 1
+S.bro_GO_table_clean <- S.bro_GO_table %>%
+  # remove empty rows
+  filter(GO_number != "-" & !is.na(GO_number)) %>%
+  # split multiple GO terms
+  separate_rows(GO_number, sep = "\\|") %>%
+  # remove "(InterPro)"
+  mutate(GO_number = gsub("\\(.*?\\)", "", GO_number)) %>%
+  # trim whitespace (just in case)
+  mutate(GO_number = trimws(GO_number)) %>%
+  distinct()
+head(S.eli_GO_table_clean)
+```
+
+
+```{r S.bro prepare term to table name}
+library(ontologyIndex)
+# prepare the term to name table
+ontology <- get_ontology(file = "go.obo",
+                         propagate_relationships = "is_a",
+                         extract_tags = "everything",
+                         merge_equivalent_terms = TRUE)
+S.bro_GO_term <- S.bro_GO_table_clean %>%
+    mutate(name = ontology$name[GO_number]) %>%
+    select(c(GO_number, name)) %>%
+    distinct() %>%
+    drop_na() %>%
+    filter(!grepl("obsolete", name))
+head(S.bro_GO_term)
+
+S.bro_GO_table_clean <- S.bro_GO_table_clean %>%
+    filter(GO_number %in% S.bro_GO_term$GO_number)
+head(S.bro_GO_table_clean)
+
+# save the results
+write_tsv(x = S.bro_GO_table_clean, file = "S.bro_term2transcript_GO.tsv")
+write_tsv(x = S.bro_GO_term, file = "S.bro_term2name_GO.tsv")
+```
+
+
+```{r S.bro background gene}
+S.bro_background <- read.table( "S.brooksi_brain_DEA_whole_table_ID.tabular", header = TRUE)
+head(S.bro_background)
+colnames(S.bro_background) <- "Transcripts_ID"
+S.bro_background <- S.bro_background %>% 
+  pull("Transcripts_ID") %>%
+  as.vector()
+
+#interesting transcripts list
+
+S.bro_interesting <- read.csv(("S.brooksi_brain_DEG_ID_Galaxy.csv"), header = TRUE)
+colnames(S.bro_interesting) <- "Transcripts_ID"
+head(S.bro_interesting)
+S.bro_interesting<- S.bro_interesting %>% 
+  pull("Transcripts_ID") %>%
+  as.vector()
+
+
+# up and down transcripts list
+
+S.bro_up <- read.table(("S.bro_brain_up_ID_Galaxy.tabular"), header = TRUE)
+colnames(S.bro_up) <- "Transcripts_ID"
+head(S.bro_up)
+S.bro_up<- S.bro_up %>% 
+  pull("Transcripts_ID") %>%
+  as.vector()
+
+S.bro_down <- read.table(("S.bro_brain_down_ID_Galaxy.tabular"), header = TRUE)
+colnames(S.bro_down) <- "Transcripts_ID"
+head(S.bro_down)
+S.bro_down <- S.bro_down %>% 
+  pull("Transcripts_ID") %>%
+  as.vector()
+
+```
+
+
+```{r S.bro enrichment test}
+# perform ORA
+S.bro_term2transcript <- read_tsv("S.bro_term2transcript_GO.tsv")
+S.bro_term2name <- read_tsv("S.bro_term2name_GO.tsv")
+
+#interproscan added the orf number onto the tail end of the Transcript_ID, need to take it off
+S.bro_term2transcript <- S.bro_term2transcript %>%
+  mutate(Transcripts_ID = gsub("_orf.*", "", Transcripts_ID))
+
+# switch the column to match the term first (like in the examples)
+S.bro_term2transcript <- S.bro_term2transcript[c("GO_number", "Transcripts_ID")]
+print(S.bro_term2transcript)
+
+S.bro_enrichment <- enricher(S.bro_interesting,
+                       TERM2GENE = S.bro_term2transcript, #enricher function only recognize TERM2GENE argument even if I want to test for transcript 
+                       TERM2NAME = S.bro_term2name,
+                       pvalueCutoff = 0.05,
+                       universe = S.bro_background,
+                       qvalueCutoff = 0.05)
+S.bro_enrichment
+
+#enrichment for up and down
+S.bro_enrichment_up <- enricher(S.bro_up,
+                       TERM2GENE = S.bro_term2transcript, #enricher function only recognize TERM2GENE argument even if I want to test for transcript 
+                       TERM2NAME = S.bro_term2name,
+                       pvalueCutoff = 0.05,
+                       universe = S.bro_background,
+                       qvalueCutoff = 0.05)
+S.bro_enrichment_up
+
+
+
+S.bro_enrichment_down<- enricher(S.bro_down,
+                       TERM2GENE = S.bro_term2transcript, #enricher function only recognize TERM2GENE argument even if I want to test for transcript 
+                       TERM2NAME = S.bro_term2name,
+                       pvalueCutoff = 0.05,
+                       universe = S.bro_background,
+                       qvalueCutoff = 0.05)
+S.bro_enrichment_down
+
+#save the enrichment result
+write.csv(file = paste0("S.bro_brain_enrichment_results.csv"),
+          x = S.bro_enrichment@result)
+
+write.csv(file = paste0("S.bro_brain_enrichment_up_results.csv"),        
+          x = S.bro_enrichment_up@result)
+
+write.csv(file = paste0("S.bro_brain_enrichment_down_results.csv"),  
+          x = S.bro_enrichment_down@result)
+
+```
+
+
+
+
