@@ -9,7 +9,7 @@ Following GO annotation, enrichment analysis was performed using methods adapted
 
 The goal is to identify biological processes, molecular functions, and cellular components associated with caste differentiation and eusocial behavior in Synalpheus shrimp.
 
-Project Summary
+# Project Summary
 
 This workflow:
 
@@ -20,7 +20,7 @@ Performs GO enrichment analysis on DEGs using clusterProfiler in R
 
 Species analyzed: S. brooksi and S. elizabethae
 
-Tools Used
+# Tools Used
 Tool	Purpose
 InterProScan	GO annotation
 seqkit	FASTA splitting
@@ -29,8 +29,8 @@ R	GO enrichment analysis
 SLURM	HPC job scheduling
 OSC HPC	Computational platform
 
-Workflow
-1. Install InterProScan
+# Workflow
+## 1. Install InterProScan
 
 Download InterProScan:
 
@@ -43,7 +43,8 @@ tar -xvzf interproscan-5.77-108.0-64-bit.tar.gz
 cd interproscan-5.77-108.0
 
 chmod +x interproscan.sh
-2. Split Transcriptome FASTA Files
+
+## 2. Split Transcriptome FASTA Files
 
 Large transcriptomes were divided into smaller FASTA chunks to enable parallel processing with SLURM array jobs.
 
@@ -60,7 +61,7 @@ S. elizabethae
 
 Each split file contains 2000 transcript sequences.
 
-3. InterProScan SLURM Workflow
+## 3. InterProScan SLURM Workflow
 Example: S. brooksi
 #!/bin/bash
 #SBATCH --account=PDNU0016
@@ -72,16 +73,16 @@ Example: S. brooksi
 #SBATCH --mail-type=ALL
 #SBATCH --output=%x.%j.log
 
-# Temporary directory
+### Temporary directory
 export TMPDIR=/fs/scratch/PDNU0016/duongm1/tmp
 
-# Go to InterProScan directory
+### Go to InterProScan directory
 cd /fs/scratch/PDNU0016/duongm1/interproscan-5.77-108.0
 
-# Get FASTA file for this array task
+### Get FASTA file for this array task
 FILE=$(ls /path/to/split_files/*.fasta | sed -n "${SLURM_ARRAY_TASK_ID}p")
 
-# Run InterProScan
+### Run InterProScan
 ./interproscan.sh \
     -i $FILE \
     -t n \
@@ -91,7 +92,7 @@ FILE=$(ls /path/to/split_files/*.fasta | sed -n "${SLURM_ARRAY_TASK_ID}p")
     -T $TMPDIR \
     -b /path/to/interproscan_output/$(basename $FILE .fasta)
 
-4. GO enrichment Analysis
+## 4. GO enrichment Analysis
 Followed methods adapted from: [Enrichment Analysis for Non-model Organisms](https://github.com/dadrasarmin/enrichment_analysis_for_non_model_organism?tab=readme-ov-file) by dadrasarmin
 R file of the analysis included in this repository.
 
