@@ -21,13 +21,10 @@ Performs GO enrichment analysis on DEGs using clusterProfiler in R
 Species analyzed: S. brooksi and S. elizabethae
 
 # Tools Used
-Tool	Purpose
-InterProScan	GO annotation
-seqkit	FASTA splitting
-GOQuick	GO ID to GO term matching
-R	GO enrichment analysis
-SLURM	HPC job scheduling
-OSC HPC	Computational platform
+InterProScan - GO annotation
+seqkit - FASTA splitting
+R - GO enrichment analysis
+
 
 # Workflow
 ## 1. Install InterProScan
